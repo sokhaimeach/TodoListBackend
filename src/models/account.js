@@ -28,6 +28,11 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   Account.init({
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true
+    },
     userId: {
       type: DataTypes.UUID,
       references: {
@@ -37,7 +42,10 @@ module.exports = (sequelize, DataTypes) => {
       onDelete: 'CASCADE'
     },
     name: DataTypes.STRING,
-    balance: DataTypes.DOUBLE,
+    balance: {
+      type: DataTypes.DOUBLE,
+      defaultValue: 0.0
+    },
     currency: {
       type: DataTypes.ENUM('KHR', 'USD'),
       defaultValue: 'KHR'

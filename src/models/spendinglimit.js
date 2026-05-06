@@ -23,6 +23,11 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   SpendingLimit.init({
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true
+    },
     accountId: {
       type: DataTypes.UUID,
       references: {
@@ -42,10 +47,7 @@ module.exports = (sequelize, DataTypes) => {
     period: {
       type: DataTypes.ENUM('DAILY', 'WEEKLY', 'MONTHLY')
     },
-    limitAmount: DataTypes.DOUBLE,
-    spentAmount: DataTypes.DOUBLE,
-    resetAt: DataTypes.DATE,
-    isExceeded: DataTypes.BOOLEAN
+    limitAmount: DataTypes.DOUBLE
   }, {
     sequelize,
     modelName: 'SpendingLimit',

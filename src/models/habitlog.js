@@ -18,6 +18,11 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   HabitLog.init({
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true
+    },
     habitId: {
       type: DataTypes.UUID,
       references: {

@@ -13,16 +13,20 @@ const auth = asyncHandler(async (req, res, next) => {
 
     const token = authHeader.split(' ')[1];
 
-    // verify refresh token
-    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-    const foundUser = await User.findByPk(decoded.id);
-    if (!foundUser) {
-        throw new AppError(ERROR_CODES.FORBIDDEN, "Forbidden", 403);
+    try{
+        // verify refresh token
+        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+
+        const foundUser = await User.findByPk(decoded.id);
+        if (!foundUser) {
+            throw new AppError(ERROR_CODES.FORBIDDEN, "Forbidden", 403);
+        }
+
+        req.user = foundUser;
+        next();
+    } catch(error) {
+        throw new AppError(ERROR_CODES.TOKEN_EXPIRED, "Token expired", 401);
     }
-
-    req.user = foundUser;
-
-    next();
 });
 
 module.exports = auth;

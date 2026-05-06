@@ -8,6 +8,5 @@ const createAccountSchema = Joi.object({
 });
 
 module.exports = {
-  create: createSchema,
-  update: createSchema
+  createAccountSchema
 };

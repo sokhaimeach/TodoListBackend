@@ -1,6 +1,6 @@
 const Joi = require('joi');
 
-const createSchema = Joi.object({
+const createSpendingLimitSchema = Joi.object({
   accountId: Joi.string().uuid().required(),
   userId: Joi.string().uuid().required(),
   period: Joi.string().valid('DAILY', 'WEEKLY', 'MONTHLY').required(),
@@ -11,6 +11,5 @@ const createSchema = Joi.object({
 });
 
 module.exports = {
-  create: createSchema,
-  update: createSchema
+  createSpendingLimitSchema
 };

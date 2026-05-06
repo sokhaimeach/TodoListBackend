@@ -30,15 +30,6 @@ module.exports = {
       limitAmount: {
         type: Sequelize.DOUBLE
       },
-      spentAmount: {
-        type: Sequelize.DOUBLE
-      },
-      resetAt: {
-        type: Sequelize.DATE
-      },
-      isExceeded: {
-        type: Sequelize.BOOLEAN
-      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE

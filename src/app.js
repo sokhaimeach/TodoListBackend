@@ -11,9 +11,13 @@ app.use(cors());
 
 // import routes
 const authRoutes = require('./routes/auth.route');
+const categoryRoutes = require('./routes/category.route');
+const accountRoutes = require('./routes/account.route');
 
 // register routes
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/categories', categoryRoutes);
+app.use('/api/v1/accounts', accountRoutes);
 
 // error handler
 app.use(errorHandler);

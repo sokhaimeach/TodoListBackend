@@ -1,6 +1,6 @@
 const Joi = require('joi');
 
-const createSchema = Joi.object({
+const createTransactionSchema = Joi.object({
   accountId: Joi.string().uuid().required(),
   taskId: Joi.string().uuid(),
   categoryId: Joi.string().uuid(),
@@ -12,6 +12,5 @@ const createSchema = Joi.object({
 });
 
 module.exports = {
-  create: createSchema,
-  update: createSchema
+  createTransactionSchema
 };

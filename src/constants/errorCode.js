@@ -17,6 +17,15 @@ const ERROR_CODES = {
     USER_NOT_FOUND:
         "USER_NOT_FOUND",
 
+    // not found
+    NOT_FOUND: "NOT_FOUND",
+
+    // bad request
+    BAD_REQUEST: "BAD_REQUEST",
+
+    // exist
+    EXIST: "ID_EXIST_IN_OTHER_TABLE",
+
     EMAIL_ALREADY_EXISTS:
         "EMAIL_ALREADY_EXISTS",
 

@@ -46,7 +46,8 @@ module.exports = (sequelize, DataTypes) => {
     }
   }, {
     sequelize,
-    modelName: 'UserRefreshToken'
+    modelName: 'UserRefreshToken',
+    timestamps: false
   });
   return UserRefreshToken;
 };
