@@ -73,7 +73,10 @@ module.exports = (sequelize, DataTypes) => {
     },
     startDate: DataTypes.DATE,
     dueDate: DataTypes.DATE,
-    isRecurring: DataTypes.BOOLEAN,
+    isRecurring: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false
+    },
     completeAt: DataTypes.DATE
   }, {
     sequelize,

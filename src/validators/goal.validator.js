@@ -1,17 +1,19 @@
 const Joi = require('joi');
 
-const createSchema = Joi.object({
-  userId: Joi.string().uuid().required(),
+const createGoalSchema = Joi.object({
   title: Joi.string().max(255).required(),
-  description: Joi.string().max(1000),
+  description: Joi.string().max(1000).allow("").allow(null),
   startDate: Joi.date(),
   deadline: Joi.date(),
-  status: Joi.string().valid('ACTIVE', 'ACHIEVED', 'ABANDONED'),
-  targetAmount: Joi.number().positive(),
-  currentAmount: Joi.number().min(0)
+  status: Joi.string().valid('ACTIVE', 'ACHIEVED', 'ABANDONED').default("ACTIVE"),
+  targetAmount: Joi.number().positive()
+});
+
+const goalStatusSchema = Joi.object({
+  status: Joi.string().valid('ACTIVE', 'ACHIEVED', 'ABANDONED').required()
 });
 
 module.exports = {
-  create: createSchema,
-  update: createSchema
+  createGoalSchema,
+  goalStatusSchema
 };

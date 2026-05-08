@@ -37,6 +37,11 @@ module.exports = (sequelize, DataTypes) => {
       onDelete: 'CASCADE'
     },
     title: DataTypes.STRING,
+    type: {
+      type: DataTypes.ENUM("FINANCE", "EDUCATION", "HEALTH", "CAREER", "PERSONAL", "FITNESS"),
+      allowNull: false,
+      defaultValue: "PERSONAL"
+    },
     description: DataTypes.TEXT,
     startDate: DataTypes.DATE,
     deadline: DataTypes.DATE,
@@ -44,8 +49,15 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.ENUM('ACTIVE', 'ACHIEVED', 'ABANDONED'),
       defaultValue: 'ACTIVE'
     },
-    targetAmount: DataTypes.DOUBLE,
-    currentAmount: DataTypes.DOUBLE
+    targetValue: DataTypes.DOUBLE,
+    currentValue: {
+      type: DataTypes.DOUBLE,
+      defaultValue: 0.0
+    },
+    unit: {
+      type: DataTypes.STRING,
+      defaultValue: null
+    }
   }, {
     sequelize,
     modelName: 'Goal',

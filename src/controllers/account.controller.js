@@ -16,7 +16,9 @@ const createAccount = asyncHandler(async (req, res) => {
 
 // get all account
 const getAllAccounts = asyncHandler(async (req, res) => {
-    const accounts = await Account.findAll();
+    const { id } = req.user;
+
+    const accounts = await Account.findAll({ where: {userId: id}});
     if (accounts.length === 0) {
         throw new AppError(ERROR_CODES.NOT_FOUND, "Accounts not found", 404);
     }

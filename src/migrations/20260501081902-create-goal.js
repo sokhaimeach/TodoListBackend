@@ -19,6 +19,11 @@ module.exports = {
       title: {
         type: Sequelize.STRING
       },
+      type: {
+        type: Sequelize.ENUM("FINANCE", "EDUCATION", "HEALTH", "CAREER", "PERSONAL", "FITNESS"),
+        allowNull: false,
+        defaultValue: "PERSONAL"
+      },
       description: {
         type: Sequelize.TEXT
       },
@@ -32,11 +37,14 @@ module.exports = {
         type: Sequelize.ENUM('ACTIVE', 'ACHIEVED', 'ABANDONED'),
         defaultValue: 'ACTIVE'
       },
-      targetAmount: {
-        type: Sequelize.DOUBLE
+      targetValue: Sequelize.DOUBLE,
+      currentValue: {
+        type: Sequelize.DOUBLE,
+        defaultValue: 0.0
       },
-      currentAmount: {
-        type: Sequelize.DOUBLE
+      unit: {
+        type: Sequelize.STRING,
+        defaultValue: null
       },
       createdAt: {
         allowNull: false,
