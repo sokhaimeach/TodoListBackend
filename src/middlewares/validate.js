@@ -16,7 +16,10 @@ const validate = (schema, source = 'body') => (req, res, next) => {
     }
 
     // check validation
-    const { error } = schema.validate(data, { abortEarly: false, });
+    const { error, value } = schema.validate(data, {
+        abortEarly: false,
+        stripUnknown: true
+    });
 
     if (error) {
         return next(
@@ -29,6 +32,7 @@ const validate = (schema, source = 'body') => (req, res, next) => {
         );
     }
 
+    req[source] = value;
     next();
 }
 

@@ -17,18 +17,18 @@ module.exports = {
         },
         onDelete: 'CASCADE'
       },
-      taskId: {
-        type: Sequelize.UUID,
-        references: {
-          model: 'Tasks',
-          key: 'id'
-        },
-        onDelete: 'SET NULL'
-      },
       categoryId: {
         type: Sequelize.UUID,
         references: {
           model: 'Categories',
+          key: 'id'
+        },
+        onDelete: 'SET NULL'
+      },
+      taskId: {
+        type: Sequelize.UUID,
+        references: {
+          model: 'Tasks',
           key: 'id'
         },
         onDelete: 'SET NULL'

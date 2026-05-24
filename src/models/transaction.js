@@ -42,14 +42,6 @@ module.exports = (sequelize, DataTypes) => {
       },
       onDelete: 'CASCADE'
     },
-    taskId: {
-      type: DataTypes.UUID,
-      references: {
-        model: 'Tasks',
-        key: 'id'
-      },
-      onDelete: 'SET NULL'
-    },
     categoryId: {
       type: DataTypes.UUID,
       references: {
@@ -58,6 +50,15 @@ module.exports = (sequelize, DataTypes) => {
       },
       onDelete: 'SET NULL'
     },
+    taskId: {
+      type: DataTypes.UUID,
+      references: {
+        model: 'Tasks',
+        key: 'id'
+      },
+      onDelete: 'SET NULL'
+    },
+    description: DataTypes.TEXT,
     currency: {
       type: DataTypes.ENUM('KHR', 'USD')
     },

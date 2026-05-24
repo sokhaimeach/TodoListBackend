@@ -1,4 +1,4 @@
-const { Op, where } = require('sequelize');
+const { Op } = require('sequelize');
 const { asyncHandler } = require('../middlewares/asyncHandler');
 const { User, UserRefreshToken, sequelize } = require('../models');
 const jwt = require('jsonwebtoken');
@@ -13,6 +13,18 @@ const { SESSION_MAX } = require('../constants/session');
 const register = asyncHandler(async (req, res) => {
     const userData = req.body;
 
+    const existingUser = await User.findOne({
+        where: {
+            [Op.or]: [
+                { username: userData.username },
+                { email: userData.email }
+            ]
+        }
+    });
+    if (existingUser) {
+        throw new AppError(ERROR_CODES.EMAIL_ALREADY_EXISTS, "Username or email already exists", 409);
+    }
+
     const user = await User.create(userData);
     const { password: _, ...data } = user.toJSON();
 
@@ -23,7 +35,7 @@ const register = asyncHandler(async (req, res) => {
     await UserRefreshToken.create({
         userId: user.id,
         hashToken: hashToken(refreshToken),
-        expiresAt: Date.now() + SESSION_MAX
+        expiresAt: new Date(Date.now() + SESSION_MAX)
     });
 
     // create secure cookie with refresh token
@@ -35,10 +47,11 @@ const register = asyncHandler(async (req, res) => {
 // login
 const login = asyncHandler(async (req, res) => {
     const { username, password, email } = req.body;
+    const where = email ? { email } : { username };
 
     // get user
     const user = await User.scope(null).findOne({
-        where: { [Op.or]: [{ username }, { email }] }
+        where
     });
     if (!user) {
         throw new AppError(ERROR_CODES.USER_NOT_FOUND, "User not found", 404);
@@ -57,7 +70,7 @@ const login = asyncHandler(async (req, res) => {
     await UserRefreshToken.create({
         userId: user.id,
         hashToken: hashToken(refreshToken),
-        expiresAt: Date.now() + SESSION_MAX
+        expiresAt: new Date(Date.now() + SESSION_MAX)
     });
 
     // create secure cookie with refresh token
@@ -123,7 +136,7 @@ const refresh = asyncHandler(async (req, res) => {
 
     res.cookie('jwt', newRefreshToken, refreshTokenCookieOptions);
 
-    return successResponse(res, "Refresh new token successfully", accessToken);
+    return successResponse(res, "Refresh new token successfully", { accessToken });
 });
 
 // logout

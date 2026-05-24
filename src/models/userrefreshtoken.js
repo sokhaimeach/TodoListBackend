@@ -42,7 +42,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     createdAt: {
       type: DataTypes.DATE,
-      defaultValue: new Date()
+      defaultValue: DataTypes.NOW
     }
   }, {
     sequelize,

@@ -1,22 +1,25 @@
 const ERROR_CODES = require("../constants/errorCode");
 const { asyncHandler } = require("../middlewares/asyncHandler");
-const { Category, User, Transaction } = require("../models");
+const { Category, Transaction } = require("../models");
 const AppError = require("../utils/AppError");
 const { successResponse } = require("../utils/response");
 
 // create new category
 const createCategory = asyncHandler(async (req, res) => {
-    const category = await Category.create(req.body);
+    const category = await Category.create({
+        userId: req.user.id,
+        ...req.body
+    });
 
-    return successResponse(res, "Create Category successfylly", category);
+    return successResponse(res, "Create category successfully", category, 201);
 });
 
 // get all category
 const getAllCategories = asyncHandler(async (req, res) => {
-    const categories = await Category.findAll();
-    if (categories.length === 0) {
-        throw new AppError(ERROR_CODES.NOT_FOUND, "Category not found", 404);
-    }
+    const categories = await Category.findAll({
+        where: { userId: req.user.id },
+        order: [["createdAt", "DESC"]]
+    });
 
     return successResponse(res, "Fetch categories successfully", categories);
 });
@@ -24,18 +27,15 @@ const getAllCategories = asyncHandler(async (req, res) => {
 // update category
 const updateCategory = asyncHandler(async (req, res) => {
     const categoryId = req.params.id;
-    const { userId, name, icon, color} = req.body;
 
-    const category = await Category.findByPk(categoryId);
+    const category = await Category.findOne({
+        where: { id: categoryId, userId: req.user.id }
+    });
     if (!category) {
         throw new AppError(ERROR_CODES.NOT_FOUND, "Category not found", 404);
     }
 
-    category.name = name;
-    category.icon = icon;
-    category.color = color;
-
-    await category.save();
+    await category.update(req.body);
 
     return successResponse(res, "Update category successfully", category);
 });
@@ -44,7 +44,9 @@ const updateCategory = asyncHandler(async (req, res) => {
 const deleteCategory = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
-    const category = await Category.findByPk(id);
+    const category = await Category.findOne({
+        where: { id, userId: req.user.id }
+    });
     if (!category) {
         throw new AppError(ERROR_CODES.NOT_FOUND, "Category not found", 404);
     }

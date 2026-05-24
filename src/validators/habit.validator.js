@@ -1,7 +1,6 @@
 const Joi = require('joi');
 
-const createSchema = Joi.object({
-  userId: Joi.string().uuid().required(),
+const createHabitSchema = Joi.object({
   title: Joi.string().max(255).required(),
   frequencyType: Joi.string().valid('DAILY', 'WEEKLY', 'MONTHLY').required(),
   frequencyDays: Joi.string().max(50),
@@ -13,7 +12,9 @@ const createSchema = Joi.object({
   isActive: Joi.boolean()
 });
 
+const updateHabitSchema = createHabitSchema.fork(['title', 'frequencyType'], (schema) => schema.optional());
+
 module.exports = {
-  create: createSchema,
-  update: createSchema
+  createHabitSchema,
+  updateHabitSchema
 };

@@ -2,37 +2,30 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('Schedules', {
+    await queryInterface.createTable('GoalProgresses', {
       id: {
         type: Sequelize.UUID,
         defaultValue: Sequelize.UUIDV4,
-        primaryKey: true
+        primaryKey: true,
       },
-      userId: {
+      goalId: {
         type: Sequelize.UUID,
         references: {
-          model: 'Users',
+          model: 'Goals',
           key: 'id'
         },
-        onDelete: 'CASCADE'
+        onDelete: 'SET NULL'
       },
-      title: {
-        type: Sequelize.STRING
+      date: {
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.NOW
       },
-      repeatType: {
-        type: Sequelize.ENUM('DAILY', 'WEEKLY', 'MONTHLY')
+      status: {
+        type: Sequelize.ENUM("DONE", "MISSED")
       },
-      repeatDays: {
-        type: Sequelize.STRING
-      },
-      startTime: {
-        type: Sequelize.TIME
-      },
-      endTime: {
-        type: Sequelize.TIME
-      },
-      isActive: {
-        type: Sequelize.BOOLEAN
+      value: {
+        allowNull: false,
+        type: Sequelize.DOUBLE
       },
       createdAt: {
         allowNull: false,
@@ -45,6 +38,6 @@ module.exports = {
     });
   },
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable('Schedules');
+    await queryInterface.dropTable('GoalProgresses');
   }
 };

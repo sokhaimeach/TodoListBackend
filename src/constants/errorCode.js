@@ -23,6 +23,10 @@ const ERROR_CODES = {
     // bad request
     BAD_REQUEST: "BAD_REQUEST",
 
+    // rate limit
+    TOO_MANY_REQUESTS:
+        "TOO_MANY_REQUESTS",
+
     // exist
     EXIST: "ID_EXIST_IN_OTHER_TABLE",
 

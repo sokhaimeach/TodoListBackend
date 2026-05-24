@@ -20,6 +20,11 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'goalId',
         as: 'tasks'
       });
+
+      Goal.hasMany(models.GoalProgress, {
+        foreignKey: 'goalId',
+        as: 'progress'
+      });
     }
   }
   Goal.init({

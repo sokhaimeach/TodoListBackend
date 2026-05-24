@@ -1,17 +1,19 @@
 const ERROR_CODES = require('../constants/errorCode');
 const { INCOME, EXPENSE } = require('../constants/type');
 const { asyncHandler } = require('../middlewares/asyncHandler');
-const { Account, Transaction, SpendingLimit, sequelize } = require('../models');
-const transaction = require('../models/transaction');
+const { Account, Transaction, SpendingLimit, Category, Task, sequelize } = require('../models');
 const AppError = require('../utils/AppError');
 const { successResponse } = require('../utils/response');
 
 
 // create account
 const createAccount = asyncHandler(async (req, res) => {
-    const account = await Account.create(req.body);
+    const account = await Account.create({
+        userId: req.user.id,
+        ...req.body
+    });
 
-    return successResponse(res, "Create account successfully!", account);
+    return successResponse(res, "Create account successfully", account, 201);
 });
 
 // get all account
@@ -19,11 +21,34 @@ const getAllAccounts = asyncHandler(async (req, res) => {
     const { id } = req.user;
 
     const accounts = await Account.findAll({ where: {userId: id}});
-    if (accounts.length === 0) {
-        throw new AppError(ERROR_CODES.NOT_FOUND, "Accounts not found", 404);
+    return successResponse(res, "Fetch all accounts successfully", accounts);
+});
+
+// get account by id
+const getAccountById = asyncHandler(async (req, res) => {
+    const account = await Account.findOne({
+        where: { id: req.params.id, userId: req.user.id }
+    });
+
+    if (!account) {
+        throw new AppError(ERROR_CODES.NOT_FOUND, "Account not found", 404);
     }
 
-    return successResponse(res, "Fetech all accounts successfully", accounts);
+    return successResponse(res, "Fetch account successfully", account);
+});
+
+// update account
+const updateAccount = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const account = await Account.findOne({ where: { id, userId: req.user.id } });
+    if (!account) {
+        throw new AppError(ERROR_CODES.NOT_FOUND, "Account not found", 404);
+    }
+
+    await account.update(req.body);
+
+    return successResponse(res, "Update account successfully", account);
 });
 
 // delete account 
@@ -31,19 +56,14 @@ const getAllAccounts = asyncHandler(async (req, res) => {
 const deleteAccount = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
-    const account = await Account.findByPk(id);
+    const account = await Account.findOne({ where: { id, userId: req.user.id } });
     if (!account) {
         throw new AppError(ERROR_CODES.NOT_FOUND, "Account not found", 404);
     }
 
-    // check ownership
-    if (account.userId !== req.user.id) {
-        throw new AppError(ERROR_CODES.FORBIDDEN, "Access denied", 403);
-    }
-
     // check if account contains transactions history
-    const hasIransaction = await Transaction.count({ where: { accountId: id } });
-    if (hasIransaction > 0) {
+    const hasTransaction = await Transaction.count({ where: { accountId: id } });
+    if (hasTransaction > 0) {
         throw new AppError(ERROR_CODES.EXIST, "Cannot delete account with transaction history", 409);
     }
 
@@ -62,12 +82,36 @@ const deleteAccount = asyncHandler(async (req, res) => {
 const createTransaction = asyncHandler(async (req, res) => {
     const t = await sequelize.transaction();
     try {
-        const { type, accountId, amount } = req.body;
+        const { type, accountId, categoryId, taskId, amount } = req.body;
 
         // find account
-        const account = await Account.findByPk(accountId, { transaction: t, lock: t.LOCK.UPDATE });
+        const account = await Account.findOne({
+            where: { id: accountId, userId: req.user.id },
+            transaction: t,
+            lock: t.LOCK.UPDATE
+        });
         if (!account) {
-            throw new AppError(ERROR_CODES.NOT_FOUND, "Account not found");
+            throw new AppError(ERROR_CODES.NOT_FOUND, "Account not found", 404);
+        }
+
+        if (categoryId) {
+            const category = await Category.findOne({
+                where: { id: categoryId, userId: req.user.id },
+                transaction: t
+            });
+            if (!category) {
+                throw new AppError(ERROR_CODES.NOT_FOUND, "Category not found", 404);
+            }
+        }
+
+        if (taskId) {
+            const task = await Task.findOne({
+                where: { id: taskId, userId: req.user.id },
+                transaction: t
+            });
+            if (!task) {
+                throw new AppError(ERROR_CODES.NOT_FOUND, "Task not found", 404);
+            }
         }
 
         let newBalance;
@@ -89,7 +133,7 @@ const createTransaction = asyncHandler(async (req, res) => {
         await account.save({ transaction: t });
 
         await t.commit();
-        return successResponse(res, "Create transaction successfully");
+        return successResponse(res, "Create transaction successfully", transaction, 201);
     } catch (err) {
         await t.rollback();
         throw err;
@@ -100,13 +144,15 @@ const createTransaction = asyncHandler(async (req, res) => {
 const getTransactionByAccountId = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
-    const transactions = await Transaction.findAll({ 
-        where: { accountId: id}, 
+    const account = await Account.findOne({ where: { id, userId: req.user.id } });
+    if (!account) {
+        throw new AppError(ERROR_CODES.NOT_FOUND, "Account not found", 404);
+    }
+
+    const transactions = await Transaction.findAll({
+        where: { accountId: id },
         order: [["createdAt", "DESC"]]
     });
-    if (transactions.length === 0) {
-        throw new AppError(ERROR_CODES.NOT_FOUND, "Transaction not found", 404);
-    }
 
     return successResponse(res, "Fetch transaction by account id successfully", transactions);
 });
@@ -116,23 +162,63 @@ const createSpendingLimit = asyncHandler(async (req, res) => {
     const { accountId } = req.body;
 
     // find account
-    const account = await Account.findByPk(accountId);
+    const account = await Account.findOne({
+        where: { id: accountId, userId: req.user.id }
+    });
     if (!account) {
-        throw new AppError(ERROR_CODES.NOT_FOUND, "Account not found");
+        throw new AppError(ERROR_CODES.NOT_FOUND, "Account not found", 404);
     }
 
-    const spendingLimit = await SpendingLimit.create(req.body);
+    const spendingLimit = await SpendingLimit.create({
+        userId: req.user.id,
+        ...req.body
+    });
 
-    return successResponse(res, "Create spending limit successfully", spendingLimit);
+    return successResponse(res, "Create spending limit successfully", spendingLimit, 201);
+});
+
+// get spending limits
+const getSpendingLimits = asyncHandler(async (req, res) => {
+    const limits = await SpendingLimit.findAll({
+        where: { userId: req.user.id },
+        order: [["createdAt", "DESC"]]
+    });
+
+    return successResponse(res, "Fetch spending limits successfully", limits);
+});
+
+// update spending limit
+const updateSpendingLimit = asyncHandler(async (req, res) => {
+    const spendingLimit = await SpendingLimit.findOne({
+        where: { id: req.params.id, userId: req.user.id }
+    });
+    if (!spendingLimit) {
+        throw new AppError(ERROR_CODES.NOT_FOUND, "Spending limit not found", 404);
+    }
+
+    if (req.body.accountId) {
+        const account = await Account.findOne({
+            where: { id: req.body.accountId, userId: req.user.id }
+        });
+        if (!account) {
+            throw new AppError(ERROR_CODES.NOT_FOUND, "Account not found", 404);
+        }
+    }
+
+    await spendingLimit.update(req.body);
+
+    return successResponse(res, "Update spending limit successfully", spendingLimit);
 });
 
 // delete spending limit
 const deleteSpendingLimit = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
-    const spendingLimit = await SpendingLimit.findByPk(id);
+    const spendingLimit = await SpendingLimit.findOne({
+        where: { id, userId: req.user.id }
+    });
     if (!spendingLimit) {
-        throw new AppError(ERROR_CODES.NOT_FOUND, "Spending limit not found");
+        throw new AppError(ERROR_CODES.NOT_FOUND, "Spending limit not found", 404);
     }
 
     await spendingLimit.destroy();
@@ -142,9 +228,13 @@ const deleteSpendingLimit = asyncHandler(async (req, res) => {
 module.exports = {
     createAccount,
     getAllAccounts,
+    getAccountById,
+    updateAccount,
     deleteAccount,
     createTransaction,
     getTransactionByAccountId,
     createSpendingLimit,
+    getSpendingLimits,
+    updateSpendingLimit,
     deleteSpendingLimit
 }

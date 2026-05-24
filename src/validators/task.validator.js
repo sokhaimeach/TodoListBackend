@@ -12,6 +12,13 @@ const createTaskSchema = Joi.object({
   completeAt: Joi.date().optional().allow(null)
 });
 
+const updateTaskSchema = createTaskSchema.fork(['title'], (schema) => schema.optional());
+const taskStatusSchema = Joi.object({
+  status: Joi.string().valid('TODO', 'IN_PROGRESS', 'DONE').required()
+});
+
 module.exports = {
-  createTaskSchema
+  createTaskSchema,
+  updateTaskSchema,
+  taskStatusSchema
 };

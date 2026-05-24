@@ -78,7 +78,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.ENUM('MALE', 'FEMALE', 'OTHER'),
       defaultValue: 'OTHER'
     },
-    age: DataTypes.NUMBER
+    age: DataTypes.INTEGER
   }, {
     sequelize,
     modelName: 'User',

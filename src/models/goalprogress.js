@@ -3,7 +3,7 @@ const {
   Model
 } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
-  class Schedule extends Model {
+  class GoalProgress extends Model {
     /**
      * Helper method for defining associations.
      * This method is not a part of Sequelize lifecycle.
@@ -11,46 +11,39 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
-      Schedule.belongsTo(models.User, {
-        foreignKey: 'userId',
-        as: 'user'
-      });
-
-      Schedule.hasMany(models.Task, {
-        foreignKey: 'scheduleId',
-        as: 'tasks'
+      GoalProgress.belongsTo(models.Goal, {
+        foreignKey: 'goalId',
+        as: 'goal'
       });
     }
   }
-  Schedule.init({
+  GoalProgress.init({
     id: {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true
     },
-    userId: {
+    goalId: {
       type: DataTypes.UUID,
       references: {
-        model: 'Users',
+        model: 'Goals',
         key: 'id'
       },
-      onDelete: 'CASCADE'
+      onDelete: 'SET NULL'
     },
-    title: DataTypes.STRING,
-    repeatType: {
-      type: DataTypes.ENUM('DAILY', 'WEEKLY', 'MONTHLY')
+    date: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW
     },
-    repeatDays: DataTypes.STRING,
-    startTime: DataTypes.TIME,
-    endTime: DataTypes.TIME,
-    isActive: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true
+    status: DataTypes.ENUM('DONE', 'MISSED'),
+    value: {
+      type: DataTypes.DOUBLE,
+      allowNull: false
     }
   }, {
     sequelize,
-    modelName: 'Schedule',
+    modelName: 'GoalProgress',
     timestamps: true
   });
-  return Schedule;
+  return GoalProgress;
 };
