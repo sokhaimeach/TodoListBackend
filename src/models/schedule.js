@@ -16,10 +16,6 @@ module.exports = (sequelize, DataTypes) => {
         as: 'user'
       });
 
-      Schedule.hasMany(models.Task, {
-        foreignKey: 'scheduleId',
-        as: 'tasks'
-      });
     }
   }
   Schedule.init({

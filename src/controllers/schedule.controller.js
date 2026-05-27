@@ -1,5 +1,5 @@
 const { asyncHandler } = require('../middlewares/asyncHandler');
-const { Schedule, Task } = require('../models');
+const { Schedule } = require('../models');
 const ERROR_CODES = require('../constants/errorCode');
 const AppError = require('../utils/AppError');
 const { successResponse } = require('../utils/response');
@@ -67,11 +67,6 @@ const deleteSchedule = asyncHandler(async (req, res) => {
 
     if (!schedule) {
         throw new AppError(ERROR_CODES.NOT_FOUND, "Schedule not found", 404);
-    }
-
-    const hasTasks = await Task.count({ where: { scheduleId: schedule.id } });
-    if (hasTasks > 0) {
-        throw new AppError(ERROR_CODES.EXIST, "Cannot delete schedule with task history", 409);
     }
 
     await schedule.destroy();

@@ -24,14 +24,6 @@ module.exports = {
         },
         onDelete: 'SET NULL'
       },
-      scheduleId: {
-        type: Sequelize.UUID,
-        references: {
-          model: 'Schedules',
-          key: 'id'
-        },
-        onDelete: 'SET NULL'
-      },
       title: {
         type: Sequelize.STRING
       },

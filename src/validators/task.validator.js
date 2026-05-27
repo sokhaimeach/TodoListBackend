@@ -2,7 +2,6 @@ const Joi = require('joi');
 
 const createTaskSchema = Joi.object({
   goalId: Joi.string().uuid().allow("").allow(null),
-  scheduleId: Joi.string().uuid().allow("").allow(null),
   title: Joi.string().max(255).required(),
   status: Joi.string().valid('TODO', 'IN_PROGRESS', 'DONE').default("TODO"),
   priority: Joi.string().valid('LOW', 'MEDIUM', 'HIGH', 'URGENT'),
@@ -17,8 +16,14 @@ const taskStatusSchema = Joi.object({
   status: Joi.string().valid('TODO', 'IN_PROGRESS', 'DONE').required()
 });
 
+const queryDateRangeSchema = Joi.object({
+  from: Joi.date().default(new Date()),
+  to: Joi.date().default(new Date())
+});
+
 module.exports = {
   createTaskSchema,
   updateTaskSchema,
-  taskStatusSchema
+  taskStatusSchema,
+  queryDateRangeSchema
 };

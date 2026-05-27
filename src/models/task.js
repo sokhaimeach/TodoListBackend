@@ -21,15 +21,6 @@ module.exports = (sequelize, DataTypes) => {
         as: 'goal'
       });
 
-      Task.belongsTo(models.Schedule, {
-        foreignKey: 'scheduleId',
-        as: 'schedule'
-      });
-
-      Task.hasMany(models.Transaction, {
-        foreignKey: 'taskId',
-        as: 'transactions'
-      });
     }
   }
   Task.init({
@@ -50,14 +41,6 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.UUID,
       references: {
         model: 'Goals',
-        key: 'id'
-      },
-      onDelete: 'SET NULL'
-    },
-    scheduleId: {
-      type: DataTypes.UUID,
-      references: {
-        model: 'Schedules',
         key: 'id'
       },
       onDelete: 'SET NULL'

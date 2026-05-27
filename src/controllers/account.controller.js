@@ -1,7 +1,7 @@
 const ERROR_CODES = require('../constants/errorCode');
 const { INCOME, EXPENSE } = require('../constants/type');
 const { asyncHandler } = require('../middlewares/asyncHandler');
-const { Account, Transaction, SpendingLimit, Category, Task, sequelize } = require('../models');
+const { Account, Transaction, SpendingLimit, Category, sequelize } = require('../models');
 const AppError = require('../utils/AppError');
 const { successResponse } = require('../utils/response');
 
@@ -82,7 +82,7 @@ const deleteAccount = asyncHandler(async (req, res) => {
 const createTransaction = asyncHandler(async (req, res) => {
     const t = await sequelize.transaction();
     try {
-        const { type, accountId, categoryId, taskId, amount } = req.body;
+        const { type, accountId, categoryId, amount } = req.body;
 
         // find account
         const account = await Account.findOne({
@@ -101,16 +101,6 @@ const createTransaction = asyncHandler(async (req, res) => {
             });
             if (!category) {
                 throw new AppError(ERROR_CODES.NOT_FOUND, "Category not found", 404);
-            }
-        }
-
-        if (taskId) {
-            const task = await Task.findOne({
-                where: { id: taskId, userId: req.user.id },
-                transaction: t
-            });
-            if (!task) {
-                throw new AppError(ERROR_CODES.NOT_FOUND, "Task not found", 404);
             }
         }
 

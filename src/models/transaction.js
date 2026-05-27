@@ -16,11 +16,6 @@ module.exports = (sequelize, DataTypes) => {
         as: 'account'
       });
 
-      Transaction.belongsTo(models.Task, {
-        foreignKey: 'taskId',
-        as: 'task'
-      });
-
       Transaction.belongsTo(models.Category, {
         foreignKey: 'categoryId',
         as: 'category'
@@ -46,14 +41,6 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.UUID,
       references: {
         model: 'Categories',
-        key: 'id'
-      },
-      onDelete: 'SET NULL'
-    },
-    taskId: {
-      type: DataTypes.UUID,
-      references: {
-        model: 'Tasks',
         key: 'id'
       },
       onDelete: 'SET NULL'

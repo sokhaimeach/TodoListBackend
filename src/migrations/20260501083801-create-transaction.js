@@ -25,14 +25,6 @@ module.exports = {
         },
         onDelete: 'SET NULL'
       },
-      taskId: {
-        type: Sequelize.UUID,
-        references: {
-          model: 'Tasks',
-          key: 'id'
-        },
-        onDelete: 'SET NULL'
-      },
       description: {
         type: Sequelize.TEXT
       },

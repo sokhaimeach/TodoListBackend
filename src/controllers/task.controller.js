@@ -1,9 +1,10 @@
 const { Op } = require('sequelize');
 const ERROR_CODES = require('../constants/errorCode');
 const { asyncHandler } = require('../middlewares/asyncHandler');
-const { Task, Goal, Schedule } = require('../models');
+const { Task, Goal } = require('../models');
 const AppError = require('../utils/AppError');
 const { successResponse } = require('../utils/response');
+const formatDateHour = require('../utils/formatDate');
 
 const normalizeNullableIds = (data) => {
     const normalized = { ...data };
@@ -12,25 +13,14 @@ const normalizeNullableIds = (data) => {
         normalized.goalId = normalized.goalId || null;
     }
 
-    if (Object.prototype.hasOwnProperty.call(normalized, 'scheduleId')) {
-        normalized.scheduleId = normalized.scheduleId || null;
-    }
-
     return normalized;
 };
 
-const assertGoalAndScheduleOwnership = async ({ goalId, scheduleId, userId }) => {
+const assertGoalOwnership = async ({ goalId, userId }) => {
     if (goalId) {
         const goal = await Goal.findOne({ where: { id: goalId, userId } });
         if (!goal) {
             throw new AppError(ERROR_CODES.NOT_FOUND, "Goal not found", 404);
-        }
-    }
-
-    if (scheduleId) {
-        const schedule = await Schedule.findOne({ where: { id: scheduleId, userId } });
-        if (!schedule) {
-            throw new AppError(ERROR_CODES.NOT_FOUND, "Schedule not found", 404);
         }
     }
 };
@@ -38,10 +28,10 @@ const assertGoalAndScheduleOwnership = async ({ goalId, scheduleId, userId }) =>
 // create task
 const createTask = asyncHandler(async (req, res) => {
     const taskData = normalizeNullableIds(req.body);
-    const { goalId, scheduleId } = taskData;
+    const { goalId } = taskData;
     const { id } = req.user;
 
-    await assertGoalAndScheduleOwnership({ goalId, scheduleId, userId: id });
+    await assertGoalOwnership({ goalId, userId: id });
 
     const task = await Task.create({ 
         userId: id, 
@@ -53,8 +43,16 @@ const createTask = asyncHandler(async (req, res) => {
 
 // get all tasks
 const getAllTasks = asyncHandler(async (req, res) => {
+    const { from, to } = req.query;
+
     const tasks = await Task.findAll({
-        where: { userId: req.user.id },
+        where: { 
+            userId: req.user.id,
+            startDate:{ 
+                [Op.gte]: formatDateHour(from),
+                [Op.lte]: formatDateHour(to, "to")
+            }
+        },
         order: [["createdAt", "DESC"]]
     });
 
@@ -108,9 +106,8 @@ const updateTask = asyncHandler(async (req, res) => {
     }
 
     const taskData = normalizeNullableIds(req.body);
-    await assertGoalAndScheduleOwnership({
+    await assertGoalOwnership({
         goalId: taskData.goalId,
-        scheduleId: taskData.scheduleId,
         userId: req.user.id
     });
 
