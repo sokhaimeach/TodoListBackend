@@ -19,6 +19,9 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(logger('dev'));
 
+// running cron job
+require("./jobs/taskStatus");
+
 // import routes
 const authRoutes = require('./routes/auth.route');
 const categoryRoutes = require('./routes/category.route');

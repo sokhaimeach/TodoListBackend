@@ -1,10 +1,10 @@
 const { Op } = require('sequelize');
 const ERROR_CODES = require('../constants/errorCode');
 const { asyncHandler } = require('../middlewares/asyncHandler');
-const { Task, Goal } = require('../models');
+const { Task, Goal, sequelize } = require('../models');
 const AppError = require('../utils/AppError');
 const { successResponse } = require('../utils/response');
-const formatDateHour = require('../utils/formatDate');
+const { formatDateHour } = require('../utils/formatDate');
 
 const normalizeNullableIds = (data) => {
     const normalized = { ...data };
@@ -53,7 +53,19 @@ const getAllTasks = asyncHandler(async (req, res) => {
                 [Op.lte]: formatDateHour(to, "to")
             }
         },
-        order: [["createdAt", "DESC"]]
+        order: [
+            ["startDate", "DESC"], 
+            [
+                sequelize.literal(`
+                    CASE
+                        WHEN priority = 'URGENT' THEN 1
+                        WHEN priority = 'HIGH' THEN 2
+                        WHEN priority = 'MEDIUM' THEN 3
+                        WHEN priority = 'LOW' THEN 4
+                    END
+                `),
+            ],
+        ]
     });
 
     return successResponse(res, "Fetch tasks successfully", tasks);
@@ -89,7 +101,19 @@ const getTodayTask = asyncHandler(async (req, res) => {
                 [Op.lt]: endOfDay
             }
         },
-        order: [["startDate", "ASC"]]
+        order: [
+            ["startDate", "DESC"], 
+            [
+                sequelize.literal(`
+                    CASE
+                        WHEN priority = 'URGENT' THEN 1
+                        WHEN priority = 'HIGH' THEN 2
+                        WHEN priority = 'MEDIUM' THEN 3
+                        WHEN priority = 'LOW' THEN 4
+                    END
+                `),
+            ],
+        ]
     });
 
     return successResponse(res, "Fetch tasks successfully", tasks);
@@ -136,7 +160,7 @@ const updateTaskStatus = asyncHandler(async (req, res) => {
 // delete task
 const deleteTask = asyncHandler(async (req, res) => {
     const task = await Task.findOne({
-        where: { id: req.params.id, userId: req.user.id }
+        where: { id: req.params.id, userId: req.user.id, status: "TODO" }
     });
 
     if (!task) {

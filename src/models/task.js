@@ -47,7 +47,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     title: DataTypes.STRING,
     status: {
-      type: DataTypes.ENUM('TODO', 'IN_PROGRESS', 'DONE'),
+      type: DataTypes.ENUM('TODO', 'IN_PROGRESS', 'DONE', 'MISSED'),
       defaultValue: 'TODO'
     },
     priority: {

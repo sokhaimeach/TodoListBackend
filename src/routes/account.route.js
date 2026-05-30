@@ -1,4 +1,4 @@
-const { createAccount, getAllAccounts, getAccountById, updateAccount, deleteAccount, createTransaction, getTransactionByAccountId, createSpendingLimit, getSpendingLimits, updateSpendingLimit, deleteSpendingLimit } = require('../controllers/account.controller');
+const { createAccount, getAllAccounts, getAccountById, updateAccount, deleteAccount, createTransaction, getTransactionByAccountId, createSpendingLimit, getSpendingLimits, updateSpendingLimit, deleteSpendingLimit, getWeeklyExpense, getExpenseByCategory } = require('../controllers/account.controller');
 const auth = require('../middlewares/auth.middleware');
 const validate = require('../middlewares/validate');
 const { createAccountSchema, updateAccountSchema } = require('../validators/account.validator');
@@ -27,5 +27,9 @@ router.delete('/spending-limit/:id', validate(paramSchema, 'params'), deleteSpen
 router.get('/:id', validate(paramSchema, 'params'), getAccountById);
 router.put('/:id', validate(paramSchema, 'params'), validate(updateAccountSchema), updateAccount);
 router.delete('/:id', validate(paramSchema, 'params'), deleteAccount);
+
+// reports
+router.get('/reports/weekly/:id', validate(paramSchema, 'params'), getWeeklyExpense);
+router.get('/reports/category/:id', validate(paramSchema, 'params'), getExpenseByCategory);
 
 module.exports = router;

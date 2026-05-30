@@ -1,8 +1,10 @@
+const { Op } = require('sequelize');
 const ERROR_CODES = require('../constants/errorCode');
 const { INCOME, EXPENSE } = require('../constants/type');
 const { asyncHandler } = require('../middlewares/asyncHandler');
 const { Account, Transaction, SpendingLimit, Category, sequelize } = require('../models');
 const AppError = require('../utils/AppError');
+const { getStartOfWeek, getEndOfWeek } = require('../utils/formatDate');
 const { successResponse } = require('../utils/response');
 
 
@@ -20,7 +22,7 @@ const createAccount = asyncHandler(async (req, res) => {
 const getAllAccounts = asyncHandler(async (req, res) => {
     const { id } = req.user;
 
-    const accounts = await Account.findAll({ where: {userId: id}});
+    const accounts = await Account.findAll({ where: { userId: id } });
     return successResponse(res, "Fetch all accounts successfully", accounts);
 });
 
@@ -215,6 +217,115 @@ const deleteSpendingLimit = asyncHandler(async (req, res) => {
     return successResponse(res, "Delete spending limit successfully", spendingLimit);
 });
 
+const getWeeklyExpense = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { date } = req.query;
+
+    const account = await Account.findOne({ where: { id, userId: req.user.id } });
+    if (!account) {
+        return successResponse(res, "Fetch weekly transactions successfully", { weeklyData: [], label: "" });
+    }
+
+    const transactions = await Transaction.findAll({
+        where: {
+            accountId: id,
+            type: "EXPENSE",
+            createdAt: {
+                [Op.gte]: getStartOfWeek(date),
+                [Op.lte]: getEndOfWeek(date),
+            },
+        },
+        attributes: [
+            [sequelize.fn("DATE", sequelize.col("createdAt")), "date"],
+            [sequelize.fn("SUM", sequelize.col("amount")), "amount"],
+        ],
+        group: [sequelize.fn("DATE", sequelize.col("createdAt"))],
+        order: [[sequelize.fn("DATE", sequelize.col("createdAt")), "DESC"]],
+    });
+
+    const data = [];
+    const monday = getStartOfWeek(date);
+
+    // day of week
+    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+
+        const dateString = d.toISOString().split("T")[0];
+
+        const dayData = transactions.find(t => {
+            const tDate = new Date(t.date).toISOString().split("T")[0];
+            return tDate === dateString;
+        });
+
+        if (dayData) {
+            data.push({
+                date: days[d.getDay()],
+                amount: Number(dayData.amount)
+            });
+        } else {
+            data.push({
+                date: days[d.getDay()],
+                amount: 0
+            });
+        }
+    }
+
+    const total = data.reduce((sum, val) => sum += val.amount, 0);
+    const average = total / 7;
+    console.log("total: ", total);
+
+    return successResponse(res, "Fetch weekly transactions successfully", { 
+        weeklyData: data, 
+        label: account.name, 
+        total, 
+        average,
+        from: getStartOfWeek(date),
+        to: getEndOfWeek(date)
+    });
+
+
+});
+
+const getExpenseByCategory = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const account = await Account.findOne({ where: { id, userId: req.user.id } });
+    if (!account) {
+        return successResponse(res, "Fetch expense by category successfully", []);
+    }
+
+    const transactions = await Transaction.findAll({
+        where: {
+            accountId: id,
+            type: "EXPENSE",
+        },
+        attributes: [
+            'categoryId',
+            [sequelize.fn("SUM", sequelize.col("amount")), "amount"],
+        ],
+        include: [{
+            model: Category,
+            as: 'category',
+            attributes: ['name', 'color', 'icon']
+        }],
+        group: ['categoryId', 'category.id'],
+    });
+
+    const data = transactions.map(t => {
+        const amount = Number(t.get('amount') || 0);
+        return {
+            category: t.category ? t.category.name : "Uncategorized",
+            amount,
+            fill: t.category ? t.category.color : "#cbd5e1" // default color
+        }
+    });
+
+    return successResponse(res, "Fetch expense by category successfully", data);
+});
+
 module.exports = {
     createAccount,
     getAllAccounts,
@@ -226,5 +337,7 @@ module.exports = {
     createSpendingLimit,
     getSpendingLimits,
     updateSpendingLimit,
-    deleteSpendingLimit
+    deleteSpendingLimit,
+    getWeeklyExpense,
+    getExpenseByCategory
 }

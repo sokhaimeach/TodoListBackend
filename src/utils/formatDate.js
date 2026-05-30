@@ -19,4 +19,25 @@ const formatDateHour = (date, type = "from") => {
     return d;
 };
 
-module.exports = formatDateHour;
+function getStartOfWeek(date) {
+    const d = date ? new Date(date) : new Date();
+    const day = (d.getDay() + 6) % 7;
+    d.setDate(d.getDate() - day);
+    d.setHours(0, 0, 0, 0);
+    return d;
+}
+
+function getEndOfWeek(date) {
+    const d = date ? new Date(date) : new Date();
+    d.setUTCHours(0, 0, 0, 0);
+    const day = (d.getDay() + 6) % 7;
+    d.setUTCDate(d.getDate() - day + 6);
+    d.setUTCHours(23, 59, 59, 999);
+    return d;
+}
+
+module.exports = {
+    formatDateHour,
+    getStartOfWeek,
+    getEndOfWeek
+};
