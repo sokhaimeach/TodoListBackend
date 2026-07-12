@@ -1,40 +1,22 @@
 const { Op } = require('sequelize');
 const ERROR_CODES = require('../constants/errorCode');
 const { asyncHandler } = require('../middlewares/asyncHandler');
-const { Task, Goal, sequelize } = require('../models');
+const { Task, sequelize } = require('../models');
 const AppError = require('../utils/AppError');
 const { successResponse } = require('../utils/response');
 const { formatDateHour } = require('../utils/formatDate');
-
-const normalizeNullableIds = (data) => {
-    const normalized = { ...data };
-
-    if (Object.prototype.hasOwnProperty.call(normalized, 'goalId')) {
-        normalized.goalId = normalized.goalId || null;
-    }
-
-    return normalized;
-};
-
-const assertGoalOwnership = async ({ goalId, userId }) => {
-    if (goalId) {
-        const goal = await Goal.findOne({ where: { id: goalId, userId } });
-        if (!goal) {
-            throw new AppError(ERROR_CODES.NOT_FOUND, "Goal not found", 404);
-        }
-    }
-};
+const taskService = require('../services/task.service');
 
 // create task
 const createTask = asyncHandler(async (req, res) => {
-    const taskData = normalizeNullableIds(req.body);
+    const taskData = taskService.normalizeNullableIds(req.body);
     const { goalId } = taskData;
     const { id } = req.user;
 
-    await assertGoalOwnership({ goalId, userId: id });
+    await taskService.assertGoalOwnership({ goalId, userId: id });
 
-    const task = await Task.create({ 
-        userId: id, 
+    const task = await Task.create({
+        userId: id,
         ...taskData
     });
 
@@ -46,25 +28,16 @@ const getAllTasks = asyncHandler(async (req, res) => {
     const { from, to } = req.query;
 
     const tasks = await Task.findAll({
-        where: { 
+        where: {
             userId: req.user.id,
-            startDate:{ 
+            startDate: {
                 [Op.gte]: formatDateHour(from),
                 [Op.lte]: formatDateHour(to, "to")
             }
         },
         order: [
-            ["startDate", "DESC"], 
-            [
-                sequelize.literal(`
-                    CASE
-                        WHEN priority = 'URGENT' THEN 1
-                        WHEN priority = 'HIGH' THEN 2
-                        WHEN priority = 'MEDIUM' THEN 3
-                        WHEN priority = 'LOW' THEN 4
-                    END
-                `),
-            ],
+            ["startDate", "DESC"],
+            [sequelize.literal(taskService.priorityOrderLiteral)],
         ]
     });
 
@@ -93,8 +66,8 @@ const getTodayTask = asyncHandler(async (req, res) => {
     const endOfDay = new Date(startOfDay);
     endOfDay.setDate(endOfDay.getDate() + 1);
 
-    const tasks = await Task.findAll({ 
-        where: { 
+    const tasks = await Task.findAll({
+        where: {
             userId: id,
             startDate: {
                 [Op.gte]: startOfDay,
@@ -102,17 +75,8 @@ const getTodayTask = asyncHandler(async (req, res) => {
             }
         },
         order: [
-            ["startDate", "DESC"], 
-            [
-                sequelize.literal(`
-                    CASE
-                        WHEN priority = 'URGENT' THEN 1
-                        WHEN priority = 'HIGH' THEN 2
-                        WHEN priority = 'MEDIUM' THEN 3
-                        WHEN priority = 'LOW' THEN 4
-                    END
-                `),
-            ],
+            ["startDate", "DESC"],
+            [sequelize.literal(taskService.priorityOrderLiteral)],
         ]
     });
 
@@ -129,8 +93,8 @@ const updateTask = asyncHandler(async (req, res) => {
         throw new AppError(ERROR_CODES.NOT_FOUND, "Task not found", 404);
     }
 
-    const taskData = normalizeNullableIds(req.body);
-    await assertGoalOwnership({
+    const taskData = taskService.normalizeNullableIds(req.body);
+    await taskService.assertGoalOwnership({
         goalId: taskData.goalId,
         userId: req.user.id
     });
@@ -151,16 +115,16 @@ const updateTaskStatus = asyncHandler(async (req, res) => {
     }
 
     task.status = req.body.status;
-    task.completeAt = req.body.status === "DONE" ? new Date() : null;
+    task.completedAt = req.body.status === "DONE" ? new Date() : null;
     await task.save();
 
     return successResponse(res, "Update task status successfully", task);
 });
 
-// delete task
+// delete task (soft delete not implemented yet — hard delete)
 const deleteTask = asyncHandler(async (req, res) => {
     const task = await Task.findOne({
-        where: { id: req.params.id, userId: req.user.id, status: "TODO" }
+        where: { id: req.params.id, userId: req.user.id }
     });
 
     if (!task) {
@@ -180,4 +144,4 @@ module.exports = {
     updateTask,
     updateTaskStatus,
     deleteTask
-}
+};

@@ -1,59 +1,44 @@
 'use strict';
-const {
-  Model
-} = require('sequelize');
+const { Model } = require('sequelize');
+
 module.exports = (sequelize, DataTypes) => {
-  class Account extends Model {
-    /**
-     * Helper method for defining associations.
-     * This method is not a part of Sequelize lifecycle.
-     * The `models/index` file will call this method automatically.
-     */
-    static associate(models) {
-      // define association here
-      Account.belongsTo(models.User, {
-        foreignKey: 'userId',
-        as: 'user'
-      });
-
-      Account.hasMany(models.Transaction, {
-        foreignKey: 'accountId',
-        as: 'transactions'
-      });
-
-      Account.hasMany(models.SpendingLimit, {
-        foreignKey: 'accountId',
-        as: 'spendingLimits'
-      });
+    class Account extends Model {
+        static associate(models) {
+            Account.belongsTo(models.User, { foreignKey: 'userId', as: 'user' });
+            Account.hasMany(models.Transaction, { foreignKey: 'accountId', as: 'transactions' });
+            Account.hasMany(models.SpendingLimit, { foreignKey: 'accountId', as: 'spendingLimits' });
+        }
     }
-  }
-  Account.init({
-    id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true
-    },
-    userId: {
-      type: DataTypes.UUID,
-      references: {
-        model: 'Users',
-        key: 'id'
-      },
-      onDelete: 'CASCADE'
-    },
-    name: DataTypes.STRING,
-    balance: {
-      type: DataTypes.DOUBLE,
-      defaultValue: 0.0
-    },
-    currency: {
-      type: DataTypes.ENUM('KHR', 'USD'),
-      defaultValue: 'KHR'
-    },
-  }, {
-    sequelize,
-    modelName: 'Account',
-    timestamps: true
-  });
-  return Account;
+
+    Account.init({
+        id: {
+            type: DataTypes.UUID,
+            defaultValue: DataTypes.UUIDV4,
+            primaryKey: true
+        },
+        userId: {
+            type: DataTypes.UUID,
+            allowNull: false,
+            references: { model: 'Users', key: 'id' },
+            onDelete: 'CASCADE'
+        },
+        name: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
+        balance: {
+            type: DataTypes.DOUBLE,
+            defaultValue: 0.0
+        },
+        currency: {
+            type: DataTypes.ENUM('KHR', 'USD'),
+            defaultValue: 'KHR'
+        }
+    }, {
+        sequelize,
+        modelName: 'Account',
+        timestamps: true
+    });
+
+    return Account;
 };

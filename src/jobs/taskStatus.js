@@ -7,6 +7,7 @@ cron.schedule("0 0 * * *", async () => {
     try {
         const today = new Date();
 
+        // mark overdue TODO and IN_PROGRESS tasks as MISSED
         const [updatedCount] = await Task.update(
             { status: "MISSED" },
             {
@@ -14,12 +15,16 @@ cron.schedule("0 0 * * *", async () => {
                     dueDate: {
                         [Op.lt]: today,
                     },
-                    status: "TODO",
+                    status: {
+                        [Op.in]: ["TODO", "IN_PROGRESS"]
+                    },
                 },
             }
         );
 
-        console.log(`${updatedCount} tasks updated to MISSED`);
+        if (updatedCount > 0) {
+            console.log(`Cron: ${updatedCount} overdue tasks marked as MISSED`);
+        }
     } catch (error) {
         console.error("Cron error:", error);
     }

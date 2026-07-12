@@ -12,6 +12,7 @@ const loginLimiter = rateLimit({
             message: "Too many login attempts from this IP, please try again after a 60 second pause"
         });
     },
+    skipFailedRequests: false,
     standardHeaders: 'draft-8',
     legacyHeaders: false,
 });

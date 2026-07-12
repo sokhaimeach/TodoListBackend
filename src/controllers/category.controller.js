@@ -53,7 +53,7 @@ const deleteCategory = asyncHandler(async (req, res) => {
 
     const transactions = await Transaction.findAll({ where: { categoryId: id }});
     if (transactions.length > 0) {
-        throw new AppError(ERROR_CODES.EXIST, "This category contain in transactions", 401);
+        throw new AppError(ERROR_CODES.EXIST, "This category is used in transactions", 409);
     }
 
     await category.destroy();

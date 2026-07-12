@@ -13,11 +13,12 @@ const { SESSION_MAX } = require('../constants/session');
 const register = asyncHandler(async (req, res) => {
     const userData = req.body;
 
+    // case-insensitive uniqueness check
     const existingUser = await User.findOne({
         where: {
             [Op.or]: [
-                { username: userData.username },
-                { email: userData.email }
+                { username: userData.username.toLowerCase() },
+                { email: userData.email.toLowerCase() }
             ]
         }
     });
@@ -25,7 +26,12 @@ const register = asyncHandler(async (req, res) => {
         throw new AppError(ERROR_CODES.EMAIL_ALREADY_EXISTS, "Username or email already exists", 409);
     }
 
-    const user = await User.create(userData);
+    const user = await User.create({
+        ...userData,
+        username: userData.username.toLowerCase(),
+        email: userData.email.toLowerCase()
+    });
+
     const { password: _, ...data } = user.toJSON();
 
     // generate access token and refresh token
@@ -47,9 +53,11 @@ const register = asyncHandler(async (req, res) => {
 // login
 const login = asyncHandler(async (req, res) => {
     const { username, password, email } = req.body;
-    const where = email ? { email } : { username };
+    const where = email
+        ? { email: email.toLowerCase() }
+        : { username: username.toLowerCase() };
 
-    // get user
+    // get user (include password field which is excluded by default scope)
     const user = await User.scope(null).findOne({
         where
     });
@@ -57,10 +65,10 @@ const login = asyncHandler(async (req, res) => {
         throw new AppError(ERROR_CODES.USER_NOT_FOUND, "User not found", 404);
     }
 
-    // check if password is match
+    // check if password matches
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-        throw new AppError(ERROR_CODES.INVALID_CREDENTIALS, "Invalid credentials");
+        throw new AppError(ERROR_CODES.INVALID_CREDENTIALS, "Invalid credentials", 401);
     }
 
     // generate access token and refresh token
@@ -98,34 +106,42 @@ const refresh = asyncHandler(async (req, res) => {
     });
 
     if (!foundToken) {
-        throw new AppError(ERROR_CODES.FORBIDDEN, "Token reuse detected", 403);
+        // token not in DB — could be reuse or expired
+        // decode to find userId for cleanup
+        try {
+            const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+            await UserRefreshToken.destroy({ where: { userId: decoded.id } });
+        } catch {
+            // can't decode — nothing to clean up
+        }
+        throw new AppError(ERROR_CODES.FORBIDDEN, "Invalid refresh token", 403);
     }
 
     let decoded;
     try {
         decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
     } catch (err) {
-        // revoke all sessions on suspicious token
-        await UserRefreshToken.destroy({ where: { userId: foundToken.userId } });
-
-        throw new AppError(ERROR_CODES.FORBIDDEN, "Invalid or expired token", 403);
+        // token expired or invalid — remove it
+        await foundToken.destroy();
+        throw new AppError(ERROR_CODES.TOKEN_EXPIRED, "Refresh token expired", 401);
     }
 
     const foundUser = await User.findByPk(decoded.id);
     if (!foundUser) {
+        await foundToken.destroy();
         throw new AppError(ERROR_CODES.FORBIDDEN, "Forbidden", 403);
     }
 
     // absolute session expiry
     if (foundToken.expiresAt < Date.now()) {
         await UserRefreshToken.destroy({ where: { userId: foundUser.id } });
-
         throw new AppError(ERROR_CODES.TOKEN_EXPIRED, "Session expired", 401);
     }
 
     const newRefreshToken = generateRefreshToken(foundUser);
     const accessToken = generateAccessToken(foundUser);
 
+    // rotate: delete old token, create new one with same expiry
     await UserRefreshToken.create({
         userId: foundUser.id,
         hashToken: hashToken(newRefreshToken),
@@ -144,7 +160,7 @@ const logout = asyncHandler(async (req, res) => {
     const cookies = req.cookies;
 
     if (!cookies?.jwt) {
-        return successResponse(res, "No content", 204);
+        return successResponse(res, "Logged out successfully");
     }
 
     await UserRefreshToken.destroy({ where: { hashToken: hashToken(cookies.jwt) } });
@@ -152,7 +168,7 @@ const logout = asyncHandler(async (req, res) => {
     // clear cookie
     res.clearCookie('jwt', refreshTokenCookieOptions);
 
-    return successResponse(res, "Cookie cleared");
+    return successResponse(res, "Logged out successfully");
 });
 
 module.exports = {
@@ -160,4 +176,4 @@ module.exports = {
     login,
     refresh,
     logout
-}
+};

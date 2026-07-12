@@ -22,12 +22,18 @@ const validate = (schema, source = 'body') => (req, res, next) => {
     });
 
     if (error) {
+        const details = {};
+        error.details.forEach(d => {
+            const field = d.path.join(".");
+            details[field] = d.message;
+        });
+
         return next(
             new AppError(
-                ERROR_CODES.VALIDATION_ERROR, 
-                "Validation failed", 
-                400, 
-                error.details.map((d) => d.message)
+                ERROR_CODES.VALIDATION_ERROR,
+                "Validation failed",
+                400,
+                details
             )
         );
     }

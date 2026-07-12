@@ -3,24 +3,11 @@ const { asyncHandler } = require('../middlewares/asyncHandler');
 const { Habit, HabitLog, sequelize } = require('../models');
 const AppError = require('../utils/AppError');
 const { successResponse } = require('../utils/response');
-
-const getOwnedHabit = async (habitId, userId, transaction = null) => {
-    const habit = await Habit.findOne({
-        where: { id: habitId, userId },
-        transaction
-    });
-
-    if (!habit) {
-        throw new AppError(ERROR_CODES.NOT_FOUND, "Habit not found", 404);
-    }
-
-    return habit;
-};
+const habitService = require('../services/habit.service');
 
 const createHabit = asyncHandler(async (req, res) => {
     const habit = await Habit.create({
         userId: req.user.id,
-        streakCount: 0,
         isActive: true,
         ...req.body
     });
@@ -38,13 +25,13 @@ const getAllHabits = asyncHandler(async (req, res) => {
 });
 
 const getHabitById = asyncHandler(async (req, res) => {
-    const habit = await getOwnedHabit(req.params.id, req.user.id);
+    const habit = await habitService.getOwnedHabit(req.params.id, req.user.id);
 
     return successResponse(res, "Fetch habit successfully", habit);
 });
 
 const updateHabit = asyncHandler(async (req, res) => {
-    const habit = await getOwnedHabit(req.params.id, req.user.id);
+    const habit = await habitService.getOwnedHabit(req.params.id, req.user.id);
 
     await habit.update(req.body);
 
@@ -52,7 +39,7 @@ const updateHabit = asyncHandler(async (req, res) => {
 });
 
 const deleteHabit = asyncHandler(async (req, res) => {
-    const habit = await getOwnedHabit(req.params.id, req.user.id);
+    const habit = await habitService.getOwnedHabit(req.params.id, req.user.id);
 
     await habit.destroy();
 
@@ -63,19 +50,35 @@ const createHabitLog = asyncHandler(async (req, res) => {
     const t = await sequelize.transaction();
 
     try {
-        const habit = await getOwnedHabit(req.params.id, req.user.id, t);
-        const log = await HabitLog.create({
-            habitId: habit.id,
-            ...req.body
-        }, { transaction: t });
+        const habit = await habitService.getOwnedHabit(req.params.id, req.user.id, t);
 
-        if (req.body.status === "DONE") {
-            habit.streakCount = Number(habit.streakCount || 0) + 1;
-            habit.lastDoneAt = req.body.date;
-            await habit.save({ transaction: t });
+        // check if log already exists for this date
+        const logDate = req.body.date ? new Date(req.body.date) : new Date();
+        logDate.setHours(0, 0, 0, 0);
+
+        const existingLog = await HabitLog.findOne({
+            where: {
+                habitId: habit.id,
+                date: logDate.toISOString().split('T')[0]
+            },
+            transaction: t
+        });
+
+        if (existingLog) {
+            throw new AppError(ERROR_CODES.CONFLICT, "Habit log already exists for this date", 409);
         }
 
+        const log = await HabitLog.create({
+            habitId: habit.id,
+            date: logDate.toISOString().split('T')[0],
+            status: req.body.status
+        }, { transaction: t });
+
+        // recalculate streak after any log
         await t.commit();
+
+        const streak = await habitService.recalculateStreak(habit.id);
+        await Habit.update({ streakCount: streak }, { where: { id: habit.id } });
 
         return successResponse(res, "Create habit log successfully", log, 201);
     } catch (error) {
@@ -85,7 +88,7 @@ const createHabitLog = asyncHandler(async (req, res) => {
 });
 
 const getHabitLogs = asyncHandler(async (req, res) => {
-    const habit = await getOwnedHabit(req.params.id, req.user.id);
+    const habit = await habitService.getOwnedHabit(req.params.id, req.user.id);
     const logs = await HabitLog.findAll({
         where: { habitId: habit.id },
         order: [["date", "DESC"]]
@@ -95,7 +98,7 @@ const getHabitLogs = asyncHandler(async (req, res) => {
 });
 
 const deleteHabitLog = asyncHandler(async (req, res) => {
-    const habit = await getOwnedHabit(req.params.id, req.user.id);
+    const habit = await habitService.getOwnedHabit(req.params.id, req.user.id);
     const log = await HabitLog.findOne({
         where: { id: req.params.logId, habitId: habit.id }
     });
@@ -105,6 +108,10 @@ const deleteHabitLog = asyncHandler(async (req, res) => {
     }
 
     await log.destroy();
+
+    // recalculate streak after deleting a log
+    const streak = await habitService.recalculateStreak(habit.id);
+    await Habit.update({ streakCount: streak, lastDoneAt: null }, { where: { id: habit.id } });
 
     return successResponse(res, "Delete habit log successfully", log);
 });
