@@ -4,7 +4,7 @@ const { INCOME, EXPENSE } = require('../constants/type');
 const { asyncHandler } = require('../middlewares/asyncHandler');
 const { Account, Transaction, SpendingLimit, Category, sequelize } = require('../models');
 const AppError = require('../utils/AppError');
-const { getStartOfWeek, getEndOfWeek } = require('../utils/formatDate');
+const { getStartOfWeek, getEndOfWeek, toLocalDateStr } = require('../utils/formatDate');
 const { successResponse } = require('../utils/response');
 
 // create account
@@ -254,7 +254,7 @@ const getTransactionByAccountId = asyncHandler(async (req, res) => {
     // Group by date
     const grouped = {};
     for (const tx of transactions) {
-        const dayKey = tx.createdAt.toISOString().slice(0, 10);
+        const dayKey = toLocalDateStr(tx.createdAt);
         if (!grouped[dayKey]) {
             grouped[dayKey] = { date: dayKey, transactions: [], totalIncome: 0, totalExpense: 0 };
         }
@@ -271,7 +271,7 @@ const getTransactionByAccountId = asyncHandler(async (req, res) => {
     for (let i = 6; i >= 0; i--) {
         const d = new Date(weekStart);
         d.setDate(weekStart.getDate() + i);
-        const key = d.toISOString().slice(0, 10);
+        const key = toLocalDateStr(d);
         if (grouped[key]) {
             weekDays.push(grouped[key]);
         } else {
@@ -280,8 +280,8 @@ const getTransactionByAccountId = asyncHandler(async (req, res) => {
     }
 
     return successResponse(res, "Fetch transaction by account id successfully", {
-        weekStart: weekStart.toISOString().slice(0, 10),
-        weekEnd: weekEnd.toISOString().slice(0, 10),
+        weekStart: toLocalDateStr(weekStart),
+        weekEnd: toLocalDateStr(weekEnd),
         days: weekDays
     });
 });
@@ -388,11 +388,12 @@ const getWeeklyExpense = asyncHandler(async (req, res) => {
         const d = new Date(monday);
         d.setDate(monday.getDate() + i);
 
-        const dateString = d.toISOString().split("T")[0];
+        const dateString = toLocalDateStr(d);
 
         const dayData = transactions.find(t => {
-            const tDate = new Date(t.get('day')).toISOString().split("T")[0];
-            return tDate === dateString;
+            const dayVal = t.get('day');
+            const tDateStr = dayVal instanceof Date ? toLocalDateStr(dayVal) : String(dayVal);
+            return tDateStr === dateString;
         });
 
         data.push({

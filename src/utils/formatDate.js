@@ -29,15 +29,22 @@ function getStartOfWeek(date) {
 
 function getEndOfWeek(date) {
     const d = date ? new Date(date) : new Date();
-    d.setUTCHours(0, 0, 0, 0);
     const day = (d.getDay() + 6) % 7;
-    d.setUTCDate(d.getDate() - day + 6);
-    d.setUTCHours(23, 59, 59, 999);
+    d.setDate(d.getDate() - day + 6);
+    d.setHours(23, 59, 59, 999);
     return d;
+}
+
+function toLocalDateStr(d) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
 
 module.exports = {
     formatDateHour,
     getStartOfWeek,
-    getEndOfWeek
+    getEndOfWeek,
+    toLocalDateStr
 };
